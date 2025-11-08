@@ -12,6 +12,7 @@ const CreateRoomPage = lazy(() => import('./pages/CreateRoomPage').then(m => ({ 
 const PrayerRequestDetailPage = lazy(() => import('./pages/PrayerRequestDetailPage').then(m => ({ default: m.PrayerRequestDetailPage })));
 const CreatePrayerRequestPage = lazy(() => import('./pages/CreatePrayerRequestPage').then(m => ({ default: m.CreatePrayerRequestPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const ProfileSettingsPage = lazy(() => import('./pages/ProfileSettingsPage').then(m => ({ default: m.ProfileSettingsPage })));
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -46,6 +47,7 @@ function AppRoutes() {
         <Route path="/prayer-request/:id" element={user ? <PrayerRequestDetailPage /> : <Navigate to="/login" />} />
         <Route path="/create-prayer-request" element={user ? <CreatePrayerRequestPage /> : <Navigate to="/login" />} />
         <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/login" />} />
+        <Route path="/profile/settings" element={user ? <ProfileSettingsPage /> : <Navigate to="/login" />} />
       </Routes>
     </Suspense>
   );

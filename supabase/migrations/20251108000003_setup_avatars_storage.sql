@@ -1,18 +1,11 @@
--- Create avatars storage bucket if it doesn't exist
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'avatars',
-  'avatars',
-  true,
-  2097152, -- 2MB in bytes
-  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
-)
-ON CONFLICT (id) DO UPDATE SET
-  public = true,
-  file_size_limit = 2097152,
-  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+-- IMPORTANT: Create the 'avatars' bucket manually through Supabase Dashboard Storage UI first
+-- Dashboard Settings:
+--   - Name: avatars
+--   - Public bucket: ON
+--   - File size limit: 2097152 (2MB)
+--   - Allowed MIME types: image/jpeg, image/png, image/webp, image/jpg
 
--- Enable RLS on storage.objects
+-- Enable RLS on storage.objects (may already be enabled)
 ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if they exist to avoid conflicts

@@ -541,10 +541,9 @@ export function RoomDetailPage() {
                 </div>
               </div>
             </div>
-            </div>
           </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );

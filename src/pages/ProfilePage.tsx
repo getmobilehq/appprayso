@@ -143,7 +143,7 @@ export function ProfilePage() {
               </div>
             </div>
             <Button
-              onClick={() => alert('Settings coming soon!')}
+              onClick={() => navigate('/profile/settings')}
               variant="ghost"
               icon={<Settings size={20} />}
             >

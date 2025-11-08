@@ -3,6 +3,7 @@ import { RemoteParticipant, Participant as LiveKitParticipant } from 'livekit-cl
 import { supabase } from '../lib/supabase';
 import { Avatar } from './Avatar';
 import { Mic, MicOff, Crown } from 'lucide-react';
+import { getDisplayName } from '../utils/user';
 
 interface ParticipantWithProfile {
   sid: string;
@@ -39,16 +40,21 @@ export function ParticipantList({
 
       // Add local participant
       if (localParticipant) {
-        const { data: localProfile } = await supabase
-          .from('profiles')
-          .select('photo_url')
-          .eq('id', localParticipant.identity)
-          .single();
+        const [{ data: localProfile }, { data: userData }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('photo_url, display_name')
+            .eq('id', localParticipant.identity)
+            .single(),
+          supabase.auth.getUser()
+        ]);
+
+        const displayName = getDisplayName(userData?.user || null, localProfile);
 
         allParticipants.push({
           sid: localParticipant.sid,
           identity: localParticipant.identity,
-          name: localParticipant.name || 'You',
+          name: displayName,
           isMuted: !localParticipant.isMicrophoneEnabled,
           isSpeaking: localParticipant.isSpeaking,
           isLocal: true,
@@ -60,14 +66,18 @@ export function ParticipantList({
       for (const participant of participants) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('photo_url')
+          .select('photo_url, display_name')
           .eq('id', participant.identity)
           .single();
+
+        // For remote participants, we can't access their full user data
+        // So we'll create a minimal user object with email from profile
+        const displayName = profile?.display_name || participant.name || 'Anonymous';
 
         allParticipants.push({
           sid: participant.sid,
           identity: participant.identity,
-          name: participant.name || 'Anonymous',
+          name: displayName,
           isMuted: !participant.isMicrophoneEnabled,
           isSpeaking: participant.isSpeaking,
           isLocal: false,
