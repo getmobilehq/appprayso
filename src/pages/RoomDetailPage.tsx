@@ -159,6 +159,41 @@ export function RoomDetailPage() {
     }
   };
 
+  const handleEndLive = async () => {
+    if (!room || !user) return;
+
+    try {
+      // Disconnect from LiveKit
+      await liveKit.disconnect();
+
+      // Update room status to ended
+      const { error } = await supabase
+        .from('prayer_rooms')
+        .update({ status: 'ended' })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setIsLive(false);
+      setHasJoined(false);
+      if (room) {
+        setRoom({ ...room, status: 'ended' });
+      }
+    } catch (error) {
+      console.error('Error ending live session:', error);
+      alert('Failed to end live session.');
+    }
+  };
+
+  const handleLeaveRoom = async () => {
+    try {
+      await liveKit.disconnect();
+      setHasJoined(false);
+    } catch (error) {
+      console.error('Error leaving room:', error);
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user) return;
@@ -305,6 +340,13 @@ export function RoomDetailPage() {
                       >
                         {liveKit.isMuted ? 'Unmute' : 'Mute'}
                       </Button>
+                      <Button
+                        onClick={handleEndLive}
+                        variant="danger"
+                        size="lg"
+                      >
+                        End Live Session
+                      </Button>
                     </div>
 
                     <div className="bg-[#0f1419] rounded-xl p-4 h-96 overflow-y-auto mb-4">
@@ -387,6 +429,13 @@ export function RoomDetailPage() {
                       icon={liveKit.isMuted ? <MicOff size={24} /> : <Mic size={24} />}
                     >
                       {liveKit.isMuted ? 'Unmute' : 'Mute'}
+                    </Button>
+                    <Button
+                      onClick={handleLeaveRoom}
+                      variant="secondary"
+                      size="lg"
+                    >
+                      Leave Room
                     </Button>
                   </div>
 
