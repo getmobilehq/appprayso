@@ -110,7 +110,7 @@ export function PrayerWallPage() {
 
   return (
     <div className="min-h-screen bg-[#15202b]">
-      <nav className="bg-[#1e2732] border-b border-gray-800">
+      <nav className="bg-[#1e2732] border-b border-gray-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center gap-2 flex-wrap sm:flex-nowrap">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
