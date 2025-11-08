@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { uploadAvatar, compressImage, updateProfileAvatar } from '../utils/storage';
-import { Button } from './Button';
 
 interface AvatarUploadProps {
   userId: string;

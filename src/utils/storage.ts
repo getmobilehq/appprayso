@@ -31,7 +31,7 @@ export async function uploadAvatar(
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
 
     // Upload file
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(AVATARS_BUCKET)
       .upload(fileName, file, {
         cacheControl: '3600',
@@ -162,8 +162,7 @@ export async function compressImage(
  * Get avatar URL with fallback to initials
  */
 export function getAvatarUrl(
-  avatarUrl: string | null | undefined,
-  displayName: string
+  avatarUrl: string | null | undefined
 ): string | null {
   if (avatarUrl) {
     return avatarUrl;

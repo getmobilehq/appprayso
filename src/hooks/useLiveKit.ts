@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Room, RoomEvent, Track, RemoteTrack, RemoteParticipant, DataPacket_Kind } from 'livekit-client';
+import { Room, RoomEvent, Track, RemoteTrack, RemoteParticipant } from 'livekit-client';
 import { supabase } from '../lib/supabase';
 import { env } from '../config/env';
 
@@ -87,7 +87,7 @@ export function useLiveKit({
       });
 
       // Handle data messages for moderation commands
-      room.on(RoomEvent.DataReceived, (payload: Uint8Array, participant?: RemoteParticipant) => {
+      room.on(RoomEvent.DataReceived, (payload: Uint8Array) => {
         const decoder = new TextDecoder();
         const message = decoder.decode(payload);
 

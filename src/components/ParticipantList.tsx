@@ -140,7 +140,9 @@ export function ParticipantList({
                   {participant.isLocal && ' (You)'}
                 </span>
                 {isHost(participant.identity) && (
-                  <Crown size={14} className="text-yellow-500" title="Host" />
+                  <span title="Host">
+                    <Crown size={14} className="text-yellow-500" />
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-1 text-xs text-gray-400">
