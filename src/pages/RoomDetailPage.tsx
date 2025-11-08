@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLiveKit } from '../hooks/useLiveKit';
 import { Button } from '../components/Button';
+import { Avatar } from '../components/Avatar';
+import { ParticipantList } from '../components/ParticipantList';
 import { AudioEqualizer } from '../components/AudioEqualizer';
 import { ArrowLeft, Users, Radio, Lock, Send, Mic, MicOff } from 'lucide-react';
 
@@ -25,9 +27,11 @@ interface RoomDetails {
 
 interface Message {
   id: string;
+  user_id: string;
   user_name: string;
   message: string;
   created_at: string;
+  avatar_url?: string | null;
 }
 
 export function RoomDetailPage() {
@@ -68,13 +72,29 @@ export function RoomDetailPage() {
         schema: 'public',
         table: 'room_messages',
         filter: `room_id=eq.${id}`
-      }, (payload) => {
+      }, async (payload) => {
         const newMsg = payload.new as Message;
-        setMessages(prev => [newMsg, ...prev]);
 
-        if (previousMessageCountRef.current > 0 && audioRef.current) {
+        // Fetch avatar for the new message
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', newMsg.user_id)
+          .single();
+
+        const messageWithAvatar = {
+          ...newMsg,
+          avatar_url: profile?.avatar_url || null
+        };
+
+        setMessages(prev => [messageWithAvatar, ...prev]);
+
+        // Play notification sound only for messages from other users
+        if (previousMessageCountRef.current > 0 && audioRef.current && newMsg.user_id !== user?.id) {
           audioRef.current.play().catch(err => console.log('Audio play failed:', err));
         }
+
+        previousMessageCountRef.current++;
       })
       .subscribe();
 
@@ -109,13 +129,23 @@ export function RoomDetailPage() {
     try {
       const { data, error } = await supabase
         .from('room_messages')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            avatar_url
+          )
+        `)
         .eq('room_id', id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       if (data) {
-        setMessages(data);
+        // Flatten the profile data into the message object
+        const messagesWithAvatars = data.map(msg => ({
+          ...msg,
+          avatar_url: msg.profiles?.avatar_url || null
+        }));
+        setMessages(messagesWithAvatars);
         previousMessageCountRef.current = data.length;
       }
     } catch (error) {
@@ -353,14 +383,22 @@ export function RoomDetailPage() {
                       <h3 className="text-sm font-semibold text-gray-400 mb-4">CHAT</h3>
                       <div className="space-y-3">
                         {messages.map((msg) => (
-                          <div key={msg.id} className="bg-[#1a1f2e] rounded-lg p-3">
-                            <div className="flex items-baseline gap-2 mb-1">
-                              <span className="font-semibold text-sm">{msg.user_name}</span>
-                              <span className="text-xs text-gray-500">
-                                {new Date(msg.created_at).toLocaleTimeString()}
-                              </span>
+                          <div key={msg.id} className="flex gap-3 items-start">
+                            <Avatar
+                              avatarUrl={msg.avatar_url}
+                              displayName={msg.user_name}
+                              userId={msg.user_id}
+                              size="sm"
+                            />
+                            <div className="flex-1 bg-[#1a1f2e] rounded-lg p-3">
+                              <div className="flex items-baseline gap-2 mb-1">
+                                <span className="font-semibold text-sm">{msg.user_name}</span>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(msg.created_at).toLocaleTimeString()}
+                                </span>
+                              </div>
+                              <p className="text-gray-300 text-sm">{msg.message}</p>
                             </div>
-                            <p className="text-gray-300 text-sm">{msg.message}</p>
                           </div>
                         ))}
                       </div>
@@ -443,14 +481,22 @@ export function RoomDetailPage() {
                     <h3 className="text-sm font-semibold text-gray-400 mb-4">CHAT</h3>
                     <div className="space-y-3">
                       {messages.map((msg) => (
-                        <div key={msg.id} className="bg-[#1a1f2e] rounded-lg p-3">
-                          <div className="flex items-baseline gap-2 mb-1">
-                            <span className="font-semibold text-sm">{msg.user_name}</span>
-                            <span className="text-xs text-gray-500">
-                              {new Date(msg.created_at).toLocaleTimeString()}
-                            </span>
+                        <div key={msg.id} className="flex gap-3 items-start">
+                          <Avatar
+                            avatarUrl={msg.avatar_url}
+                            displayName={msg.user_name}
+                            userId={msg.user_id}
+                            size="sm"
+                          />
+                          <div className="flex-1 bg-[#1a1f2e] rounded-lg p-3">
+                            <div className="flex items-baseline gap-2 mb-1">
+                              <span className="font-semibold text-sm">{msg.user_name}</span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(msg.created_at).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <p className="text-gray-300 text-sm">{msg.message}</p>
                           </div>
-                          <p className="text-gray-300 text-sm">{msg.message}</p>
                         </div>
                       ))}
                     </div>
@@ -478,7 +524,16 @@ export function RoomDetailPage() {
             </div>
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-4">
+            {isLive && hasJoined && (
+              <ParticipantList
+                participants={liveKit.participants}
+                localParticipant={liveKit.room?.localParticipant}
+                hostId={room.host_id}
+                currentUserId={user?.id}
+              />
+            )}
+
             <div className="bg-[#1a1f2e] rounded-2xl p-6 sticky top-24">
               <h3 className="font-semibold mb-4">Room Details</h3>
               <div className="space-y-3 text-sm">

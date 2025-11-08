@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
+import { AvatarUpload } from '../components/AvatarUpload';
 import { getDisplayName, formatJoinDate } from '../utils/user';
 import { ArrowLeft, Mail, Calendar, Heart, MessageCircle, Users, Settings } from 'lucide-react';
 
@@ -13,9 +14,16 @@ interface UserStats {
   circlesJoined: number;
 }
 
+interface Profile {
+  avatar_url?: string | null;
+  bio?: string | null;
+  timezone?: string;
+}
+
 export function ProfilePage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<UserStats>({
     prayerRequestsCount: 0,
     amensGiven: 0,
@@ -25,14 +33,19 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchUserStats();
+    fetchUserData();
   }, [user]);
 
-  const fetchUserStats = async () => {
+  const fetchUserData = async () => {
     if (!user) return;
 
     try {
-      const [requestsResult, amensResult, responsesResult, circlesResult] = await Promise.all([
+      const [profileResult, requestsResult, amensResult, responsesResult, circlesResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('avatar_url, bio, timezone')
+          .eq('id', user.id)
+          .single(),
         supabase
           .from('prayer_requests')
           .select('id', { count: 'exact', head: true })
@@ -51,6 +64,7 @@ export function ProfilePage() {
           .eq('user_id', user.id)
       ]);
 
+      setProfile(profileResult.data);
       setStats({
         prayerRequestsCount: requestsResult.count || 0,
         amensGiven: amensResult.count || 0,
@@ -58,10 +72,18 @@ export function ProfilePage() {
         circlesJoined: circlesResult.count || 0
       });
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error('Error fetching user data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAvatarUploadSuccess = (avatarUrl: string) => {
+    setProfile((prev) => ({ ...prev, avatar_url: avatarUrl }));
+  };
+
+  const handleAvatarUploadError = (error: Error) => {
+    alert(`Failed to upload avatar: ${error.message}`);
   };
 
   const handleSignOut = async () => {
@@ -99,9 +121,13 @@ export function ProfilePage() {
         <div className="bg-[#1a1f2e] rounded-2xl p-8 mb-6">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-6">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
-                {user?.email?.charAt(0).toUpperCase()}
-              </div>
+              <AvatarUpload
+                userId={user?.id || ''}
+                displayName={getDisplayName(user)}
+                currentAvatarUrl={profile?.avatar_url}
+                onUploadSuccess={handleAvatarUploadSuccess}
+                onUploadError={handleAvatarUploadError}
+              />
               <div>
                 <h1 className="text-3xl font-bold mb-2">
                   {getDisplayName(user)}
