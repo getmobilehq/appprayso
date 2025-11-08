@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { RemoteParticipant, Participant as LiveKitParticipant } from 'livekit-client';
 import { supabase } from '../lib/supabase';
 import { Avatar } from './Avatar';
-import { Mic, MicOff, Crown } from 'lucide-react';
+import { Mic, MicOff, Crown, MoreVertical, UserCog } from 'lucide-react';
 import { getDisplayName } from '../utils/user';
 
 interface ParticipantWithProfile {
@@ -20,6 +20,8 @@ interface ParticipantListProps {
   localParticipant?: LiveKitParticipant | null;
   hostId?: string;
   currentUserId?: string;
+  onMuteParticipant?: (participantId: string, participantName: string) => void;
+  onMakeHost?: (participantId: string, participantName: string) => void;
 }
 
 export function ParticipantList({
@@ -27,8 +29,11 @@ export function ParticipantList({
   localParticipant,
   hostId,
   currentUserId,
+  onMuteParticipant,
+  onMakeHost,
 }: ParticipantListProps) {
   const [participantsWithProfiles, setParticipantsWithProfiles] = useState<ParticipantWithProfile[]>([]);
+  const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
 
   useEffect(() => {
     fetchParticipantProfiles();
@@ -95,6 +100,18 @@ export function ParticipantList({
     return hostId === participantId;
   };
 
+  const isCurrentUserHost = currentUserId === hostId;
+
+  const handleMuteParticipant = (participant: ParticipantWithProfile) => {
+    setOpenMenuFor(null);
+    onMuteParticipant?.(participant.identity, participant.name);
+  };
+
+  const handleMakeHost = (participant: ParticipantWithProfile) => {
+    setOpenMenuFor(null);
+    onMakeHost?.(participant.identity, participant.name);
+  };
+
   return (
     <div className="bg-[#1a1f2e] rounded-xl p-4">
       <h3 className="text-sm font-semibold text-gray-400 mb-4 uppercase">
@@ -138,11 +155,58 @@ export function ParticipantList({
                 )}
               </div>
             </div>
-            <div>
+            <div className="flex items-center gap-2">
               {participant.isMuted ? (
                 <MicOff size={16} className="text-red-400" />
               ) : (
                 <Mic size={16} className="text-green-400" />
+              )}
+
+              {/* Host Controls - Only show for host, not for themselves */}
+              {isCurrentUserHost && !participant.isLocal && (
+                <div className="relative">
+                  <button
+                    onClick={() => setOpenMenuFor(openMenuFor === participant.identity ? null : participant.identity)}
+                    className="p-1 hover:bg-gray-700 rounded transition-colors"
+                    title="More options"
+                  >
+                    <MoreVertical size={16} className="text-gray-400" />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {openMenuFor === participant.identity && (
+                    <>
+                      {/* Backdrop to close menu */}
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setOpenMenuFor(null)}
+                      />
+
+                      {/* Menu */}
+                      <div className="absolute right-0 top-8 z-20 bg-[#1a1f2e] border border-gray-700 rounded-lg shadow-xl min-w-[160px] py-1">
+                        {!participant.isMuted && (
+                          <button
+                            onClick={() => handleMuteParticipant(participant)}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                          >
+                            <MicOff size={14} className="text-red-400" />
+                            <span>Mute</span>
+                          </button>
+                        )}
+
+                        {!isHost(participant.identity) && (
+                          <button
+                            onClick={() => handleMakeHost(participant)}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                          >
+                            <UserCog size={14} className="text-yellow-500" />
+                            <span>Make Host</span>
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           </div>

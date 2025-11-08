@@ -46,6 +46,7 @@ export function RoomDetailPage() {
   const [isLive, setIsLive] = useState(false);
   const [showChat, setShowChat] = useState(true);
   const [mobileTab, setMobileTab] = useState<'participants' | 'chat'>('participants');
+  const [notification, setNotification] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const previousMessageCountRef = useRef<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -59,6 +60,43 @@ export function RoomDetailPage() {
     },
     onDisconnected: () => {
       console.log('Disconnected from LiveKit room');
+    },
+    onMuteRequest: (moderatorName: string) => {
+      showNotification(`You have been muted by ${moderatorName}`);
+    },
+    onHostTransfer: async (newHostId: string) => {
+      if (newHostId === user?.id) {
+        showNotification('You are now the host!');
+        // Refresh room details to get updated host_id
+        await fetchRoomDetails();
+      }
+    },
+    onParticipantDisconnected: async (participantId: string) => {
+      // Handle auto host assignment if the host disconnected
+      if (room && participantId === room.host_id && id) {
+        try {
+          const { data, error } = await supabase.rpc('handle_host_disconnect', {
+            room_uuid: id,
+            disconnected_host_uuid: participantId,
+          });
+
+          if (error) throw error;
+
+          if (data && data.length > 0 && data[0].should_transfer) {
+            const newHostId = data[0].new_host_id;
+
+            // Notify all participants
+            if (liveKit.room) {
+              await liveKit.sendHostTransferNotification(newHostId);
+            }
+
+            // Refresh room details
+            await fetchRoomDetails();
+          }
+        } catch (error) {
+          console.error('Error handling host disconnect:', error);
+        }
+      }
     },
   });
 
@@ -253,6 +291,82 @@ export function RoomDetailPage() {
     }
   };
 
+  const showNotification = (message: string) => {
+    setNotification(message);
+    setTimeout(() => setNotification(null), 5000); // Auto-dismiss after 5 seconds
+  };
+
+  const handleMuteParticipant = async (participantId: string, participantName: string) => {
+    if (!user || !room) return;
+
+    try {
+      // Send mute command via LiveKit
+      await liveKit.sendMuteCommand(
+        participantId,
+        user.user_metadata?.full_name || user.email?.split('@')[0] || 'Host'
+      );
+
+      // Log moderation action
+      await supabase
+        .from('room_moderation_logs')
+        .insert({
+          room_id: id,
+          moderator_id: user.id,
+          target_user_id: participantId,
+          action: 'mute',
+          metadata: { participant_name: participantName },
+        });
+
+      showNotification(`Muted ${participantName}`);
+    } catch (error) {
+      console.error('Error muting participant:', error);
+      showNotification('Failed to mute participant');
+    }
+  };
+
+  const handleMakeHost = async (participantId: string, participantName: string) => {
+    if (!user || !room || !id) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to make ${participantName} the host? You will become a co-host.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Transfer host in database
+      const { error } = await supabase.rpc('transfer_room_host', {
+        room_uuid: id,
+        new_host_uuid: participantId,
+        old_host_uuid: user.id,
+      });
+
+      if (error) throw error;
+
+      // Send notification to all participants
+      await liveKit.sendHostTransferNotification(participantId);
+
+      // Log moderation action
+      await supabase
+        .from('room_moderation_logs')
+        .insert({
+          room_id: id,
+          moderator_id: user.id,
+          target_user_id: participantId,
+          action: 'host_transfer',
+          metadata: { new_host_name: participantName },
+        });
+
+      // Refresh room details
+      await fetchRoomDetails();
+
+      showNotification(`${participantName} is now the host`);
+    } catch (error) {
+      console.error('Error transferring host:', error);
+      showNotification('Failed to transfer host');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
@@ -375,6 +489,8 @@ export function RoomDetailPage() {
                   localParticipant={liveKit.room?.localParticipant}
                   hostId={room.host_id}
                   currentUserId={user?.id}
+                  onMuteParticipant={handleMuteParticipant}
+                  onMakeHost={handleMakeHost}
                 />
               </div>
             </div>
@@ -545,6 +661,22 @@ export function RoomDetailPage() {
           </div>
         )}
       </main>
+
+      {/* Notification Toast */}
+      {notification && (
+        <div className="fixed bottom-8 right-8 z-50 animate-slide-up">
+          <div className="bg-blue-600 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 max-w-md">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+            <p className="font-medium">{notification}</p>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-auto text-white/80 hover:text-white transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
