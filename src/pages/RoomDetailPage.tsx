@@ -44,8 +44,11 @@ export function RoomDetailPage() {
   const [loading, setLoading] = useState(true);
   const [hasJoined, setHasJoined] = useState(false);
   const [isLive, setIsLive] = useState(false);
+  const [showChat, setShowChat] = useState(true);
+  const [mobileTab, setMobileTab] = useState<'participants' | 'chat'>('participants');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const previousMessageCountRef = useRef<number>(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const liveKit = useLiveKit({
     roomName: id || '',
@@ -58,6 +61,10 @@ export function RoomDetailPage() {
       console.log('Disconnected from LiveKit room');
     },
   });
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
     fetchRoomDetails();
@@ -302,8 +309,154 @@ export function RoomDetailPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+        {/* New X Spaces-style layout for live sessions */}
+        {isLive && hasJoined ? (
+          <div className="flex gap-6 h-[calc(100vh-140px)]">
+            {/* Main Content Area (70%) - Desktop only */}
+            <div className={`flex-1 space-y-4 ${mobileTab === 'chat' ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'}`}>
+              {/* Room Header */}
+              <div className="bg-[#1a1f2e] rounded-2xl p-6">
+                <h1 className="text-2xl font-bold mb-2">{room.name}</h1>
+                <p className="text-gray-400 text-sm mb-4">{room.description}</p>
+
+                {/* Status Badge */}
+                {user && room.host_id === user.id ? (
+                  <div className="bg-gradient-to-br from-red-500/20 to-orange-500/20 border-2 border-red-500/50 rounded-xl p-4">
+                    <div className="flex items-center justify-center gap-3 mb-3">
+                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-lg shadow-red-500/50"></div>
+                      <span className="font-bold text-lg text-red-400">YOU ARE LIVE</span>
+                    </div>
+                    <div className="flex justify-center mb-3">
+                      <AudioEqualizer isActive={liveKit.isConnected} isMuted={liveKit.isMuted} barCount={7} audioTrack={liveKit.audioTrack} />
+                    </div>
+                    <p className="text-center text-gray-300 text-sm">
+                      {liveKit.isMuted ? 'Your mic is muted' : `Broadcasting to ${liveKit.participants.length} participant(s)`}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                    <div className="flex items-center justify-center gap-3 mb-3">
+                      <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+                      <span className="font-bold text-green-400">CONNECTED</span>
+                    </div>
+                    <div className="flex justify-center mb-3">
+                      <AudioEqualizer isActive={liveKit.isConnected} isMuted={liveKit.isMuted} barCount={7} audioTrack={liveKit.audioTrack} />
+                    </div>
+                    <p className="text-center text-gray-300 text-sm">
+                      {liveKit.isMuted ? 'Your mic is muted' : 'You are connected'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Audio Controls */}
+                <div className="flex items-center justify-center gap-4 mt-4">
+                  <Button
+                    onClick={liveKit.toggleMute}
+                    variant={liveKit.isMuted ? 'danger' : 'primary'}
+                    size="lg"
+                    icon={liveKit.isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+                  >
+                    {liveKit.isMuted ? 'Unmute' : 'Mute'}
+                  </Button>
+                  <Button
+                    onClick={user && room.host_id === user.id ? handleEndLive : handleLeaveRoom}
+                    variant={user && room.host_id === user.id ? 'danger' : 'secondary'}
+                    size="lg"
+                  >
+                    {user && room.host_id === user.id ? 'End Live' : 'Leave'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Participant List */}
+              <div className="flex-1 overflow-hidden">
+                <ParticipantList
+                  participants={liveKit.participants}
+                  localParticipant={liveKit.room?.localParticipant}
+                  hostId={room.host_id}
+                  currentUserId={user?.id}
+                />
+              </div>
+            </div>
+
+            {/* Chat Sidebar (30%) - Desktop, or full width on mobile when tab is active */}
+            <div className={`w-full lg:w-96 flex flex-col bg-[#1a1f2e] rounded-2xl overflow-hidden ${mobileTab === 'participants' ? 'hidden lg:flex' : 'flex'}`}>
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <h3 className="font-semibold">Chat</h3>
+                <button
+                  onClick={() => setShowChat(!showChat)}
+                  className="lg:hidden text-gray-400 hover:text-white"
+                >
+                  {showChat ? 'Hide' : 'Show'}
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {messages.map((msg) => (
+                  <div key={msg.id} className="flex gap-3 items-start">
+                    <Avatar
+                      avatarUrl={msg.avatar_url}
+                      displayName={msg.user_name}
+                      userId={msg.user_id}
+                      size="sm"
+                    />
+                    <div className="flex-1 bg-[#0f1419] rounded-lg p-3">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="font-semibold text-sm">{msg.user_name}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(msg.created_at).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-300 text-sm">{msg.message}</p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+
+              <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-800">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 bg-[#0f1419] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
+                  />
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    icon={<Send size={18} />}
+                    disabled={!newMessage.trim()}
+                  >
+                    Send
+                  </Button>
+                </div>
+              </form>
+            </div>
+
+            {/* Mobile Tab Switcher */}
+            <div className="fixed bottom-0 left-0 right-0 bg-[#1a1f2e] border-t border-gray-800 lg:hidden z-50">
+              <div className="flex">
+                <button
+                  onClick={() => setMobileTab('participants')}
+                  className={`flex-1 py-4 text-sm font-medium ${mobileTab === 'participants' ? 'text-blue-400 border-t-2 border-blue-400' : 'text-gray-400'}`}
+                >
+                  Participants
+                </button>
+                <button
+                  onClick={() => setMobileTab('chat')}
+                  className={`flex-1 py-4 text-sm font-medium ${mobileTab === 'chat' ? 'text-blue-400 border-t-2 border-blue-400' : 'text-gray-400'}`}
+                >
+                  Chat
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Original layout for non-live rooms */
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
             <div className="bg-[#1a1f2e] rounded-2xl p-6 mb-6">
               <h1 className="text-3xl font-bold mb-2">{room.name}</h1>
               <p className="text-gray-400 mb-4">{room.description}</p>
@@ -319,115 +472,30 @@ export function RoomDetailPage() {
                 <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded">{room.category}</span>
               </div>
 
-              {user && room.host_id === user.id ? (
-                !isLive ? (
-                  <div className="space-y-4">
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-6 text-center">
-                      <h3 className="text-xl font-bold mb-2">Ready to Start?</h3>
-                      <p className="text-gray-400 mb-4">
-                        Click the button below to go live and start your prayer session.
-                        Participants will be able to join once you're live.
-                      </p>
-                    </div>
-                    <Button
-                      onClick={handleGoLive}
-                      variant="primary"
-                      size="lg"
-                      className="w-full"
-                      icon={<Radio size={24} />}
-                    >
-                      Go Live
-                    </Button>
+              {user && room.host_id === user.id && !isLive ? (
+                <div className="space-y-4">
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-6 text-center">
+                    <h3 className="text-xl font-bold mb-2">Ready to Start?</h3>
+                    <p className="text-gray-400 mb-4">
+                      Click the button below to go live and start your prayer session.
+                      Participants will be able to join once you're live.
+                    </p>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="bg-gradient-to-br from-red-500/20 to-orange-500/20 border-2 border-red-500/50 rounded-2xl p-6">
-                      <div className="flex items-center justify-center gap-3 mb-4">
-                        <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse shadow-lg shadow-red-500/50"></div>
-                        <span className="font-bold text-xl text-red-400">YOU ARE LIVE</span>
-                      </div>
-                      <div className="flex justify-center mb-4">
-                        <AudioEqualizer isActive={liveKit.isConnected} isMuted={liveKit.isMuted} barCount={7} audioTrack={liveKit.audioTrack} />
-                      </div>
-                      <div className="text-center space-y-2">
-                        <p className="text-gray-300 text-sm">
-                          {liveKit.isMuted ? 'Your mic is muted' : `Broadcasting to ${liveKit.participants.length} participant(s)`}
-                        </p>
-                        {liveKit.isConnected && (
-                          <div className="flex items-center justify-center gap-2 text-xs text-green-400">
-                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                            <span>LiveKit Connected</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-center gap-4 p-6 bg-[#0f1419] rounded-xl border border-gray-800">
-                      <Button
-                        onClick={liveKit.toggleMute}
-                        variant={liveKit.isMuted ? 'danger' : 'primary'}
-                        size="lg"
-                        icon={liveKit.isMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                      >
-                        {liveKit.isMuted ? 'Unmute' : 'Mute'}
-                      </Button>
-                      <Button
-                        onClick={handleEndLive}
-                        variant="danger"
-                        size="lg"
-                      >
-                        End Live Session
-                      </Button>
-                    </div>
-
-                    <div className="bg-[#0f1419] rounded-xl p-4 h-96 overflow-y-auto mb-4">
-                      <h3 className="text-sm font-semibold text-gray-400 mb-4">CHAT</h3>
-                      <div className="space-y-3">
-                        {messages.map((msg) => (
-                          <div key={msg.id} className="flex gap-3 items-start">
-                            <Avatar
-                              avatarUrl={msg.avatar_url}
-                              displayName={msg.user_name}
-                              userId={msg.user_id}
-                              size="sm"
-                            />
-                            <div className="flex-1 bg-[#1a1f2e] rounded-lg p-3">
-                              <div className="flex items-baseline gap-2 mb-1">
-                                <span className="font-semibold text-sm">{msg.user_name}</span>
-                                <span className="text-xs text-gray-500">
-                                  {new Date(msg.created_at).toLocaleTimeString()}
-                                </span>
-                              </div>
-                              <p className="text-gray-300 text-sm">{msg.message}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <form onSubmit={handleSendMessage} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type a message..."
-                        className="flex-1 bg-[#0f1419] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                      />
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        icon={<Send size={20} />}
-                        disabled={!newMessage.trim()}
-                      >
-                        Send
-                      </Button>
-                    </form>
-                  </div>
-                )
-              ) : !isLive ? (
+                  <Button
+                    onClick={handleGoLive}
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    icon={<Radio size={24} />}
+                  >
+                    Go Live
+                  </Button>
+                </div>
+              ) : (!user || room.host_id !== user.id) && !isLive ? (
                 <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6 text-center">
                   <p className="text-gray-400">This room is not live yet. The host needs to start the session.</p>
                 </div>
-              ) : !hasJoined ? (
+              ) : (!user || room.host_id !== user.id) && isLive && !hasJoined ? (
                 <Button
                   onClick={handleJoinRoom}
                   variant="primary"
@@ -437,103 +505,11 @@ export function RoomDetailPage() {
                 >
                   {room.participant_count >= room.max_participants ? 'Room Full' : 'Join Room'}
                 </Button>
-              ) : (
-                <div className="space-y-4">
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-6">
-                    <div className="flex items-center justify-center gap-3 mb-4">
-                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
-                      <span className="font-bold text-lg text-green-400">CONNECTED TO LIVE SESSION</span>
-                    </div>
-                    <div className="flex justify-center mb-4">
-                      <AudioEqualizer isActive={liveKit.isConnected} isMuted={liveKit.isMuted} barCount={7} audioTrack={liveKit.audioTrack} />
-                    </div>
-                    <div className="text-center space-y-2">
-                      <p className="text-gray-300 text-sm">
-                        {liveKit.isMuted ? 'Your mic is muted' : 'You are connected'}
-                      </p>
-                      {liveKit.isConnected && (
-                        <div className="flex items-center justify-center gap-2 text-xs text-green-400">
-                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                          <span>LiveKit Connected - Listening to host</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center gap-4 p-6 bg-[#0f1419] rounded-xl border border-gray-800">
-                    <Button
-                      onClick={liveKit.toggleMute}
-                      variant={liveKit.isMuted ? 'danger' : 'primary'}
-                      size="lg"
-                      icon={liveKit.isMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                    >
-                      {liveKit.isMuted ? 'Unmute' : 'Mute'}
-                    </Button>
-                    <Button
-                      onClick={handleLeaveRoom}
-                      variant="secondary"
-                      size="lg"
-                    >
-                      Leave Room
-                    </Button>
-                  </div>
-
-                  <div className="bg-[#0f1419] rounded-xl p-4 h-96 overflow-y-auto mb-4">
-                    <h3 className="text-sm font-semibold text-gray-400 mb-4">CHAT</h3>
-                    <div className="space-y-3">
-                      {messages.map((msg) => (
-                        <div key={msg.id} className="flex gap-3 items-start">
-                          <Avatar
-                            avatarUrl={msg.avatar_url}
-                            displayName={msg.user_name}
-                            userId={msg.user_id}
-                            size="sm"
-                          />
-                          <div className="flex-1 bg-[#1a1f2e] rounded-lg p-3">
-                            <div className="flex items-baseline gap-2 mb-1">
-                              <span className="font-semibold text-sm">{msg.user_name}</span>
-                              <span className="text-xs text-gray-500">
-                                {new Date(msg.created_at).toLocaleTimeString()}
-                              </span>
-                            </div>
-                            <p className="text-gray-300 text-sm">{msg.message}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleSendMessage} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message..."
-                      className="flex-1 bg-[#0f1419] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                    />
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      icon={<Send size={20} />}
-                      disabled={!newMessage.trim()}
-                    >
-                      Send
-                    </Button>
-                  </form>
-                </div>
-              )}
+              ) : null}
             </div>
           </div>
 
-          <div className="lg:col-span-1 space-y-4">
-            {isLive && hasJoined && (
-              <ParticipantList
-                participants={liveKit.participants}
-                localParticipant={liveKit.room?.localParticipant}
-                hostId={room.host_id}
-                currentUserId={user?.id}
-              />
-            )}
-
+          <div className="lg:col-span-1">
             <div className="bg-[#1a1f2e] rounded-2xl p-6 sticky top-24">
               <h3 className="font-semibold mb-4">Room Details</h3>
               <div className="space-y-3 text-sm">
@@ -565,7 +541,9 @@ export function RoomDetailPage() {
                 </div>
               </div>
             </div>
+            </div>
           </div>
+          )}
         </div>
       </main>
     </div>
