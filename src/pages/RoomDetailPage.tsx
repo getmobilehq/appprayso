@@ -199,11 +199,22 @@ export function RoomDetailPage() {
   };
 
   const handleJoinRoom = async () => {
-    if (!room || !user) return;
+    if (!room || !user || !id) return;
 
     try {
       await liveKit.connect();
       setHasJoined(true);
+
+      // Track that user has joined this room
+      await supabase
+        .from('room_speakers')
+        .upsert({
+          room_id: id,
+          user_id: user.id,
+          joined_at: new Date().toISOString(),
+        }, {
+          onConflict: 'room_id,user_id',
+        });
     } catch (error) {
       console.error('Error joining room:', error);
       alert('Failed to join the room. Please check your microphone permissions.');
@@ -211,7 +222,7 @@ export function RoomDetailPage() {
   };
 
   const handleGoLive = async () => {
-    if (!room || !user) return;
+    if (!room || !user || !id) return;
 
     try {
       const { error } = await supabase
@@ -228,6 +239,17 @@ export function RoomDetailPage() {
       if (room) {
         setRoom({ ...room, status: 'live' });
       }
+
+      // Track that host has joined this room
+      await supabase
+        .from('room_speakers')
+        .upsert({
+          room_id: id,
+          user_id: user.id,
+          joined_at: new Date().toISOString(),
+        }, {
+          onConflict: 'room_id,user_id',
+        });
     } catch (error) {
       console.error('Error going live:', error);
       alert('Failed to start the room. Please check your microphone permissions.');

@@ -9,6 +9,7 @@ const CirclesPage = lazy(() => import('./pages/CirclesPage').then(m => ({ defaul
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RoomDetailPage = lazy(() => import('./pages/RoomDetailPage').then(m => ({ default: m.RoomDetailPage })));
 const CreateRoomPage = lazy(() => import('./pages/CreateRoomPage').then(m => ({ default: m.CreateRoomPage })));
+const MyRoomsPage = lazy(() => import('./pages/MyRoomsPage').then(m => ({ default: m.MyRoomsPage })));
 const PrayerRequestDetailPage = lazy(() => import('./pages/PrayerRequestDetailPage').then(m => ({ default: m.PrayerRequestDetailPage })));
 const CreatePrayerRequestPage = lazy(() => import('./pages/CreatePrayerRequestPage').then(m => ({ default: m.CreatePrayerRequestPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
@@ -44,6 +45,7 @@ function AppRoutes() {
         <Route path="/circles" element={user ? <CirclesPage /> : <Navigate to="/login" />} />
         <Route path="/room/:id" element={user ? <RoomDetailPage /> : <Navigate to="/login" />} />
         <Route path="/create-room" element={user ? <CreateRoomPage /> : <Navigate to="/login" />} />
+        <Route path="/my-rooms" element={user ? <MyRoomsPage /> : <Navigate to="/login" />} />
         <Route path="/prayer-request/:id" element={user ? <PrayerRequestDetailPage /> : <Navigate to="/login" />} />
         <Route path="/create-prayer-request" element={user ? <CreatePrayerRequestPage /> : <Navigate to="/login" />} />
         <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/login" />} />

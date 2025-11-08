@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { PrayerRoom } from '../types';
 import { Button } from '../components/Button';
 import { NotificationBell } from '../components/NotificationBell';
-import { Plus, LogOut, BookHeart, UserCircle, Users, Radio, CircleDot, Lock, Clock, Play, Calendar } from 'lucide-react';
+import { Plus, LogOut, BookHeart, UserCircle, Users, Radio, CircleDot, Lock, Clock, Play, Calendar, ListChecks } from 'lucide-react';
 
 export function HomePage() {
   const [liveRooms, setLiveRooms] = useState<PrayerRoom[]>([]);
@@ -167,6 +167,14 @@ export function HomePage() {
               className="h-6 sm:h-8 w-auto"
             />
             <div className="flex items-center gap-1 sm:gap-2">
+              <Button
+                onClick={() => navigate('/my-rooms')}
+                variant="ghost"
+                size="sm"
+                icon={<ListChecks size={20} />}
+                className="px-2 sm:px-3"
+                title="My Rooms"
+              />
               <Button
                 onClick={() => navigate('/circles')}
                 variant="ghost"
