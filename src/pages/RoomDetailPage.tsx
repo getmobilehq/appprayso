@@ -214,7 +214,6 @@ export function RoomDetailPage() {
         .upsert({
           room_id: id,
           user_id: user.id,
-          joined_at: new Date().toISOString(),
         }, {
           ignoreDuplicates: false,
         });
@@ -254,7 +253,6 @@ export function RoomDetailPage() {
         .upsert({
           room_id: id,
           user_id: user.id,
-          joined_at: new Date().toISOString(),
         }, {
           ignoreDuplicates: false,
         });
