@@ -209,15 +209,20 @@ export function RoomDetailPage() {
       setHasJoined(true);
 
       // Track that user has joined this room
-      await supabase
+      const { error: speakerError } = await supabase
         .from('room_speakers')
         .upsert({
           room_id: id,
           user_id: user.id,
           joined_at: new Date().toISOString(),
         }, {
-          onConflict: 'room_id,user_id',
+          ignoreDuplicates: false,
         });
+
+      if (speakerError) {
+        console.warn('Could not track room join:', speakerError);
+        // Don't block the user from joining if tracking fails
+      }
     } catch (error) {
       console.error('Error joining room:', error);
       alert('Failed to join the room. Please check your microphone permissions.');
@@ -244,15 +249,20 @@ export function RoomDetailPage() {
       }
 
       // Track that host has joined this room
-      await supabase
+      const { error: speakerError } = await supabase
         .from('room_speakers')
         .upsert({
           room_id: id,
           user_id: user.id,
           joined_at: new Date().toISOString(),
         }, {
-          onConflict: 'room_id,user_id',
+          ignoreDuplicates: false,
         });
+
+      if (speakerError) {
+        console.warn('Could not track room join:', speakerError);
+        // Don't block host from going live if tracking fails
+      }
     } catch (error) {
       console.error('Error going live:', error);
       alert('Failed to start the room. Please check your microphone permissions.');
