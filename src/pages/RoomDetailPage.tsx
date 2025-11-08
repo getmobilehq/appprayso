@@ -7,7 +7,8 @@ import { Button } from '../components/Button';
 import { Avatar } from '../components/Avatar';
 import { ParticipantList } from '../components/ParticipantList';
 import { AudioEqualizer } from '../components/AudioEqualizer';
-import { ArrowLeft, Users, Radio, Lock, Send, Mic, MicOff } from 'lucide-react';
+import { InviteMembersModal } from '../components/InviteMembersModal';
+import { ArrowLeft, Users, Radio, Lock, Send, Mic, MicOff, UserPlus } from 'lucide-react';
 
 interface RoomDetails {
   id: string;
@@ -20,6 +21,7 @@ interface RoomDetails {
   status: 'scheduled' | 'live' | 'ended';
   category: string;
   is_private: boolean;
+  circle_id?: string | null;
   scheduled_start_time?: string;
   scheduled_end_time?: string;
   created_at: string;
@@ -47,6 +49,7 @@ export function RoomDetailPage() {
   const [showChat, setShowChat] = useState(true);
   const [mobileTab, setMobileTab] = useState<'participants' | 'chat'>('participants');
   const [notification, setNotification] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const previousMessageCountRef = useRef<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -439,6 +442,18 @@ export function RoomDetailPage() {
                   Private
                 </span>
               )}
+              {room.is_private && room.circle_id && user && room.host_id === user.id && (
+                <Button
+                  onClick={() => setShowInviteModal(true)}
+                  variant="ghost"
+                  size="sm"
+                  icon={<UserPlus size={16} />}
+                  className="hidden sm:flex"
+                  title="Invite Members"
+                >
+                  Invite
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -698,6 +713,20 @@ export function RoomDetailPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Invite Members Modal */}
+      {showInviteModal && room.circle_id && (
+        <InviteMembersModal
+          roomId={room.id}
+          roomName={room.name}
+          circleId={room.circle_id}
+          onClose={() => setShowInviteModal(false)}
+          onInvitesSent={(count) => {
+            showNotification(`Sent ${count} invitation${count !== 1 ? 's' : ''} successfully`);
+            setShowInviteModal(false);
+          }}
+        />
       )}
     </div>
   );
