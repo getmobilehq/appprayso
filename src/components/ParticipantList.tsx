@@ -41,7 +41,7 @@ export function ParticipantList({
       if (localParticipant) {
         const { data: localProfile } = await supabase
           .from('profiles')
-          .select('avatar_url')
+          .select('photo_url')
           .eq('id', localParticipant.identity)
           .single();
 
@@ -52,7 +52,7 @@ export function ParticipantList({
           isMuted: !localParticipant.isMicrophoneEnabled,
           isSpeaking: localParticipant.isSpeaking,
           isLocal: true,
-          avatarUrl: localProfile?.avatar_url || null,
+          avatarUrl: localProfile?.photo_url || null,
         });
       }
 
@@ -60,7 +60,7 @@ export function ParticipantList({
       for (const participant of participants) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('avatar_url')
+          .select('photo_url')
           .eq('id', participant.identity)
           .single();
 
@@ -71,7 +71,7 @@ export function ParticipantList({
           isMuted: !participant.isMicrophoneEnabled,
           isSpeaking: participant.isSpeaking,
           isLocal: false,
-          avatarUrl: profile?.avatar_url || null,
+          avatarUrl: profile?.photo_url || null,
         });
       }
 

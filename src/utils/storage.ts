@@ -82,7 +82,7 @@ export async function updateProfileAvatar(
   try {
     const { error } = await supabase
       .from('profiles')
-      .update({ avatar_url: avatarUrl })
+      .update({ photo_url: avatarUrl })
       .eq('id', userId);
 
     if (error) throw error;

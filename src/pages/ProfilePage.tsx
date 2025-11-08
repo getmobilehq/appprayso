@@ -15,7 +15,7 @@ interface UserStats {
 }
 
 interface Profile {
-  avatar_url?: string | null;
+  photo_url?: string | null;
   bio?: string | null;
   timezone?: string;
 }
@@ -43,7 +43,7 @@ export function ProfilePage() {
       const [profileResult, requestsResult, amensResult, responsesResult, circlesResult] = await Promise.all([
         supabase
           .from('profiles')
-          .select('avatar_url, bio, timezone')
+          .select('photo_url, bio, timezone')
           .eq('id', user.id)
           .single(),
         supabase
@@ -79,7 +79,7 @@ export function ProfilePage() {
   };
 
   const handleAvatarUploadSuccess = (avatarUrl: string) => {
-    setProfile((prev) => ({ ...prev, avatar_url: avatarUrl }));
+    setProfile((prev) => ({ ...prev, photo_url: avatarUrl }));
   };
 
   const handleAvatarUploadError = (error: Error) => {
@@ -124,7 +124,7 @@ export function ProfilePage() {
               <AvatarUpload
                 userId={user?.id || ''}
                 displayName={getDisplayName(user)}
-                currentAvatarUrl={profile?.avatar_url}
+                currentAvatarUrl={profile?.photo_url}
                 onUploadSuccess={handleAvatarUploadSuccess}
                 onUploadError={handleAvatarUploadError}
               />

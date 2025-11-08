@@ -31,7 +31,7 @@ interface Message {
   user_name: string;
   message: string;
   created_at: string;
-  avatar_url?: string | null;
+  photo_url?: string | null;
 }
 
 export function RoomDetailPage() {
@@ -85,13 +85,13 @@ export function RoomDetailPage() {
         // Fetch avatar for the new message
         const { data: profile } = await supabase
           .from('profiles')
-          .select('avatar_url')
+          .select('photo_url')
           .eq('id', newMsg.user_id)
           .single();
 
         const messageWithAvatar = {
           ...newMsg,
-          avatar_url: profile?.avatar_url || null
+          photo_url: profile?.photo_url || null
         };
 
         setMessages(prev => [messageWithAvatar, ...prev]);
@@ -139,7 +139,7 @@ export function RoomDetailPage() {
         .select(`
           *,
           profiles:user_id (
-            avatar_url
+            photo_url
           )
         `)
         .eq('room_id', id)
@@ -150,7 +150,7 @@ export function RoomDetailPage() {
         // Flatten the profile data into the message object
         const messagesWithAvatars = data.map(msg => ({
           ...msg,
-          avatar_url: msg.profiles?.avatar_url || null
+          photo_url: msg.profiles?.photo_url || null
         }));
         setMessages(messagesWithAvatars);
         previousMessageCountRef.current = data.length;
@@ -395,7 +395,7 @@ export function RoomDetailPage() {
                 {messages.map((msg) => (
                   <div key={msg.id} className="flex gap-3 items-start">
                     <Avatar
-                      avatarUrl={msg.avatar_url}
+                      avatarUrl={msg.photo_url}
                       displayName={msg.user_name}
                       userId={msg.user_id}
                       size="sm"
