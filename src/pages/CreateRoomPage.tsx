@@ -27,7 +27,7 @@ export function CreateRoomPage() {
     category: 'Morning Prayer',
     isPrivate: false,
     maxParticipants: 50,
-    status: 'live' as 'live' | 'scheduled',
+    status: 'scheduled' as 'live' | 'scheduled',
     scheduledStartTime: '',
     scheduledEndTime: ''
   });
@@ -184,36 +184,38 @@ export function CreateRoomPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Start Time</label>
+              <label className="block text-sm font-medium mb-2">Room Type</label>
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, status: 'live' })}
+                  onClick={() => setFormData({ ...formData, status: 'scheduled' })}
                   className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-                    formData.status === 'live'
+                    formData.status === 'scheduled' && !formData.scheduledStartTime
                       ? 'border-blue-500 bg-blue-500/10'
                       : 'border-gray-700 bg-[#0f1419]'
                   }`}
                 >
                   <Users size={24} className="mx-auto mb-2" />
-                  <div className="font-medium">Start Now</div>
+                  <div className="font-medium">Ready to Go Live</div>
+                  <div className="text-xs text-gray-400 mt-1">Create now, go live when ready</div>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, status: 'scheduled' })}
+                  onClick={() => setFormData({ ...formData, status: 'scheduled', scheduledStartTime: new Date(Date.now() + 3600000).toISOString().slice(0, 16) })}
                   className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-                    formData.status === 'scheduled'
+                    formData.status === 'scheduled' && formData.scheduledStartTime
                       ? 'border-blue-500 bg-blue-500/10'
                       : 'border-gray-700 bg-[#0f1419]'
                   }`}
                 >
                   <Clock size={24} className="mx-auto mb-2" />
-                  <div className="font-medium">Schedule</div>
+                  <div className="font-medium">Schedule for Later</div>
+                  <div className="text-xs text-gray-400 mt-1">Set a specific start time</div>
                 </button>
               </div>
             </div>
 
-            {formData.status === 'scheduled' && (
+            {formData.scheduledStartTime && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">

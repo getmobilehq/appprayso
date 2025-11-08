@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Environment Check</title>
+</head>
+<body>
+    <h1>Environment Variables Check</h1>
+    <pre id="output"></pre>
+
+    <script type="module">
+        const output = document.getElementById('output');
+        const env = {
+            VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+            VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 20) + '...',
+            VITE_LIVEKIT_URL: import.meta.env.VITE_LIVEKIT_URL,
+            MODE: import.meta.env.MODE
+        };
+
+        output.textContent = JSON.stringify(env, null, 2);
+
+        console.log('Environment Variables:', env);
+    </script>
+</body>
+</html>

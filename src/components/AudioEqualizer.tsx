@@ -4,17 +4,17 @@ interface AudioEqualizerProps {
   isActive: boolean;
   isMuted: boolean;
   barCount?: number;
+  audioTrack?: MediaStreamTrack | null;
 }
 
-export function AudioEqualizer({ isActive, isMuted, barCount = 7 }: AudioEqualizerProps) {
+export function AudioEqualizer({ isActive, isMuted, barCount = 7, audioTrack }: AudioEqualizerProps) {
   const [barHeights, setBarHeights] = useState<number[]>(Array(barCount).fill(20));
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (isActive && !isMuted) {
+    if (isActive && !isMuted && audioTrack) {
       startAudioVisualization();
     } else {
       stopAudioVisualization();
@@ -24,12 +24,14 @@ export function AudioEqualizer({ isActive, isMuted, barCount = 7 }: AudioEqualiz
     return () => {
       stopAudioVisualization();
     };
-  }, [isActive, isMuted, barCount]);
+  }, [isActive, isMuted, barCount, audioTrack]);
 
   const startAudioVisualization = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+      if (!audioTrack) return;
+
+      // Use the provided audio track from LiveKit instead of requesting microphone again
+      const stream = new MediaStream([audioTrack]);
 
       const audioContext = new AudioContext();
       audioContextRef.current = audioContext;
@@ -43,7 +45,7 @@ export function AudioEqualizer({ isActive, isMuted, barCount = 7 }: AudioEqualiz
 
       visualize();
     } catch (error) {
-      console.error('Error accessing microphone:', error);
+      console.error('Error setting up audio visualization:', error);
     }
   };
 
@@ -53,10 +55,8 @@ export function AudioEqualizer({ isActive, isMuted, barCount = 7 }: AudioEqualiz
       animationFrameRef.current = null;
     }
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
+    // Don't stop the audio track - it's managed by LiveKit
+    // Just clean up the AudioContext
 
     if (audioContextRef.current) {
       audioContextRef.current.close();

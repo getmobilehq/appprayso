@@ -282,7 +282,7 @@ export function RoomDetailPage() {
                         <span className="font-bold text-xl text-red-400">YOU ARE LIVE</span>
                       </div>
                       <div className="flex justify-center mb-4">
-                        <AudioEqualizer isActive={liveKit.isConnected} isMuted={liveKit.isMuted} barCount={7} />
+                        <AudioEqualizer isActive={liveKit.isConnected} isMuted={liveKit.isMuted} barCount={7} audioTrack={liveKit.audioTrack} />
                       </div>
                       <div className="text-center space-y-2">
                         <p className="text-gray-300 text-sm">
@@ -365,7 +365,7 @@ export function RoomDetailPage() {
                       <span className="font-bold text-lg text-green-400">CONNECTED TO LIVE SESSION</span>
                     </div>
                     <div className="flex justify-center mb-4">
-                      <AudioEqualizer isActive={liveKit.isConnected} isMuted={liveKit.isMuted} barCount={7} />
+                      <AudioEqualizer isActive={liveKit.isConnected} isMuted={liveKit.isMuted} barCount={7} audioTrack={liveKit.audioTrack} />
                     </div>
                     <div className="text-center space-y-2">
                       <p className="text-gray-300 text-sm">
