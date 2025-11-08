@@ -51,8 +51,11 @@ export function CreateRoomPage() {
         participant_count: 0
       };
 
-      if (formData.status === 'scheduled') {
+      // Only include scheduled times if they're actually set
+      if (formData.scheduledStartTime) {
         roomData.scheduled_start_time = formData.scheduledStartTime;
+      }
+      if (formData.scheduledEndTime) {
         roomData.scheduled_end_time = formData.scheduledEndTime;
       }
 
@@ -188,7 +191,7 @@ export function CreateRoomPage() {
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, status: 'scheduled' })}
+                  onClick={() => setFormData({ ...formData, status: 'scheduled', scheduledStartTime: '', scheduledEndTime: '' })}
                   className={`flex-1 p-4 rounded-lg border-2 transition-all ${
                     formData.status === 'scheduled' && !formData.scheduledStartTime
                       ? 'border-blue-500 bg-blue-500/10'
