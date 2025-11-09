@@ -8,7 +8,7 @@ import { Avatar } from '../components/Avatar';
 import { ParticipantList } from '../components/ParticipantList';
 import { AudioEqualizer } from '../components/AudioEqualizer';
 import { InviteMembersModal } from '../components/InviteMembersModal';
-import { ArrowLeft, Users, Radio, Lock, Send, Mic, MicOff, UserPlus } from 'lucide-react';
+import { ArrowLeft, Users, Radio, Lock, Send, Mic, MicOff, UserPlus, Trash2 } from 'lucide-react';
 
 interface RoomDetails {
   id: string;
@@ -400,6 +400,47 @@ export function RoomDetailPage() {
     }
   };
 
+  const handleDeleteRoom = async () => {
+    if (!user || !room || !id) return;
+
+    // Only host can delete
+    if (room.host_id !== user.id) {
+      alert('Only the host can delete this room');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${room.name}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Disconnect from LiveKit if connected
+      if (hasJoined) {
+        await liveKit.disconnect();
+      }
+
+      // Delete the room (cascading deletes will handle related data)
+      const { error } = await supabase
+        .from('prayer_rooms')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      showNotification('Room deleted successfully');
+
+      // Redirect to home page
+      setTimeout(() => {
+        navigate('/');
+      }, 1000);
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      alert('Failed to delete room. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
@@ -461,6 +502,16 @@ export function RoomDetailPage() {
                 >
                   Invite
                 </Button>
+              )}
+              {user && room.host_id === user.id && (
+                <Button
+                  onClick={handleDeleteRoom}
+                  variant="ghost"
+                  size="sm"
+                  icon={<Trash2 size={16} />}
+                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  title="Delete Room"
+                />
               )}
             </div>
           </div>
